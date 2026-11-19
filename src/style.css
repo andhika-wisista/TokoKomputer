@@ -55,6 +55,8 @@ main { min-height: 60vh; }
 .section-head h2 { margin: 0; font-size: 1.4rem; color: var(--text-primary); }
 .count-badge { background: #e8f3ec; border: 1px solid #cfe6d8; color: #2f6b45; font-weight: 700; font-size: 0.8rem; padding: 0.3rem 0.85rem; border-radius: 999px; white-space: nowrap; }
 .footer { text-align: center; padding: 2rem 1rem; color: var(--muted-text); border-top: 1px solid var(--border-default); margin-top: 2rem; }
+.footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; max-width: 1200px; margin: 0 auto; padding: 1rem 0; }
+.footer-small { font-size: 0.75rem; color: var(--muted-text); opacity: 0.8; }
 .muted { color: var(--muted-text); }
 
 /* Hero */

@@ -30,7 +30,7 @@ export function renderShell() {
     </main>
 
     <footer class="footer">
-      <p>&copy; 2026 Tokokomputer &mdash; data demo tersimpan di localStorage browser ini.</p>
+      <p>&copy; 2026 Tokokomputer</p>
     </footer>
 
     <div id="toast-root" aria-live="polite"></div>
