@@ -7,6 +7,8 @@ import { escapeHtml } from "./utils/dom.js";
 import { buildWhatsAppUrl } from "./utils/whatsapp.js";
 import { products as allProducts } from "./products.js";
 import { filterProducts } from "./utils/filter.js";
+import { getSession, isAdmin, logout } from "./auth.js";
+import { renderLoginScreen } from "./login.js";
 
 // Titik peta default & preset kota (bebas diubah user)
 const TITIK_DEFAULT = { lat: -6.1944, lng: 106.8229, zoom: 15 };
@@ -45,6 +47,18 @@ export function renderShell() {
   const app = document.getElementById("app");
   if (!app) return;
 
+  const session = getSession();
+  document.body.dataset.role = session ? session.role : "guest";
+  const userArea = session
+    ? `<div class="nav-user">
+         <span class="user-badge">${escapeHtml(session.nama)} · ${session.role === "admin" ? "Admin" : "User"}</span>
+         <button type="button" class="btn-logout" data-action="logout">Keluar</button>
+       </div>`
+    : "";
+  const dashboardTab = isAdmin(session)
+    ? `<button type="button" class="tab" data-view-tab="dashboard">Dashboard</button>`
+    : "";
+
   app.innerHTML = `
 <div class="promo-strip">
   <span>Katalog komputer, komponen &amp; aksesoris</span>
@@ -58,8 +72,9 @@ export function renderShell() {
     <button type="button" class="tab" data-view-tab="cart">Keranjang <span class="nav-badge">0</span></button>
     <button type="button" class="tab" data-view-tab="wishlist">Wishlist <span class="nav-badge">0</span></button>
     <button type="button" class="tab" data-view-tab="lokasi">Lokasi</button>
-    <button type="button" class="tab" data-view-tab="dashboard">Dashboard</button>
+    ${dashboardTab}
   </nav>
+  ${userArea}
 </header>
 
 <main>
@@ -114,6 +129,16 @@ export function renderShell() {
     btn.addEventListener("click", () => showView(btn.dataset.viewTab));
   });
 
+  app.querySelectorAll("[data-action]").forEach((el) => {
+    el.addEventListener("click", () => {
+      if (el.dataset.action === "logout") {
+        logout();
+        document.body.dataset.role = "guest";
+        renderLoginScreen(() => window.__boot?.());
+      }
+    });
+  });
+
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeProductModal();
   });
@@ -126,6 +151,13 @@ let activeList = [];
 export function showView(name) {
   const target = document.getElementById(`view-${name}`);
   if (!target) return;
+
+  const session = getSession();
+  const role = session?.role || "guest";
+  if (name === "dashboard" && role !== "admin") {
+    toast("Akses ditolak. Hanya admin.", "error");
+    name = "catalog";
+  }
 
   document.querySelectorAll("[data-view-tab]").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.viewTab === name);
@@ -316,6 +348,18 @@ export function renderCatalog(list) {
 </section>
 
 ${noticeHtml}
+
+<section class="flash-section" aria-label="Promo terbatas">
+  <div class="flash-inner">
+    <div class="flash-copy">
+      <span class="flash-label">⚡ PROMO TERBATAS</span>
+      <h2>Buruan sebelum kehabisan</h2>
+      <p>Produk unggulan dengan stok terbatas. Hitung mundur promo berakhir:</p>
+      <div class="flash-timer" id="flash-timer" aria-live="polite">Memuat...</div>
+    </div>
+    <button type="button" class="btn-primary" data-flash-cta>Lihat produk promo</button>
+  </div>
+</section>
 
 <section class="layanan-strip" aria-label="Keunggulan">
   <div class="layanan"><span class="layanan-ikon">01</span><div><strong>Stok terpantau</strong><small>Status stok tiap produk ditampilkan jelas.</small></div></div>
