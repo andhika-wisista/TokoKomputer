@@ -1,0 +1,42 @@
+import "./style.css";
+import { loadProducts, getNotice, upsertProduct, deleteProduct, resetProducts, importProducts, exportProducts } from "./store.js";
+import { renderShell, renderCatalog, showView, toast } from "./ui.js";
+import { renderDashboard } from "./dashboard.js";
+import { escapeHtml } from "./utils/dom.js";
+
+let list = loadProducts();
+
+// Render shell pertama
+renderShell();
+
+// Tampilkan pemberitahuan data rusak bila ada
+const notice = getNotice();
+if (notice) {
+  toast(notice.message, notice.type);
+}
+
+renderCatalog(list);
+
+function refresh() {
+  list = loadProducts();
+  renderCatalog(list);
+  renderDashboard(list, refresh);
+}
+
+function setDashboardHandler(fn) {
+  // dashboard menggunakan onChange yang mengacu ke refresh
+  window.__refreshCatalog = refresh;
+}
+
+renderDashboard(list, () => {
+  // refresh data & render ulang
+  list = loadProducts();
+  renderCatalog(list);
+  renderDashboard(list, () => {
+    list = loadProducts();
+    renderCatalog(list);
+    renderDashboard(list, arguments.callee || (() => {}));
+  });
+});
+
+export { loadProducts };

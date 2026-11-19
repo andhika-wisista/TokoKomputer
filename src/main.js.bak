@@ -1,0 +1,8 @@
+import "./style.css";
+import { loadProducts } from "./store.js";
+import { renderCatalog } from "./ui.js";
+
+const list = loadProducts();
+renderCatalog(list);
+
+export { loadProducts };
