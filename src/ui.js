@@ -147,6 +147,7 @@ export function renderShell() {
 }
 
 let activeList = [];
+let flashTimer = null;
 
 export function showView(name) {
   const target = document.getElementById(`view-${name}`);
@@ -380,6 +381,7 @@ ${noticeHtml}
   <div class="kategori-chips" aria-label="Filter cepat kategori">
     <button type="button" class="chip chip-btn aktif" data-kategori-cepat="Semua">Semua</button>
     ${KATEGORI_VALID.map((k) => `<button type="button" class="chip chip-btn" data-kategori-cepat="${escapeHtml(k)}">${escapeHtml(k)}</button>`).join("")}
+    <button type="button" class="chip chip-btn" data-kategori-cepat="Promo">Promo</button>
   </div>
 
   <div class="toolbar">
@@ -388,6 +390,7 @@ ${noticeHtml}
       <select id="category-select" aria-label="Filter kategori">
         <option value="Semua">Semua kategori</option>
         ${KATEGORI_VALID.map((k) => `<option value="${k}">${k}</option>`).join("")}
+        <option value="Promo">Promo diskon</option>
       </select>
       <select id="brand-select" aria-label="Filter merek">
         <option value="Semua">Semua merek</option>
@@ -404,6 +407,29 @@ ${noticeHtml}
   </div>
 
   <div id="catalog-grid" class="grid"></div>
+</section>
+
+<section class="unggulan-section catalog-section" aria-label="Produk unggulan">
+  <div class="section-head">
+    <div>
+      <span class="eyebrow">Pilihan Editor</span>
+      <h2>Produk Unggulan Minggu Ini</h2>
+    </div>
+    <span class="count-badge">Pilihan terbaik</span>
+  </div>
+  <div class="unggulan-rail">
+    ${allProducts.filter((p) => p.unggulan).slice(0, 4).map((p) => `
+      <article class="card" data-id="${escapeHtml(p.id)}" tabindex="0" role="button" aria-label="Lihat detail ${escapeHtml(p.nama)}">
+        <div class="card-media"><img src="${escapeHtml(p.imageUrl)}" alt="${escapeHtml(p.nama)}" loading="lazy" /></div>
+        <div class="card-body">
+          <p class="cat">${escapeHtml(p.kategori)}${p.brand ? " · " + escapeHtml(p.brand) : ""}</p>
+          <h3>${escapeHtml(p.nama)}</h3>
+          <p class="price">${rupiah(p.harga)} ${p.originalPrice && p.originalPrice > p.harga ? `<s class="harga-lama">${rupiah(p.originalPrice)}</s>` : ""}</p>
+          <div class="card-rating">${bintang(p.rating)} <span>${Number(p.rating).toFixed(1)} (${p.reviewCount})</span></div>
+        </div>
+      </article>
+    `).join("")}
+  </div>
 </section>
 
 <section class="cara-pesan-section">
@@ -464,6 +490,13 @@ ${noticeHtml}
   </div>
 </section>`;
 
+  panel.querySelector(".unggulan-rail")?.addEventListener("click", (e) => {
+    const card = e.target.closest("article[data-id]");
+    if (!card) return;
+    const p = allProducts.find((x) => x.id === card.dataset.id);
+    if (p) openProductModal(p);
+  });
+
   panel.querySelectorAll("[data-goto-lokasi]").forEach((el) => {
     el.addEventListener("click", () => showView("lokasi"));
   });
@@ -511,12 +544,14 @@ ${noticeHtml}
   function update() {
     const q = searchInput.value.trim().toLowerCase();
     const brand = brandSelect.value;
+    const kategori = categorySelect.value === "Promo" ? "Semua" : categorySelect.value;
     let hasil = filterProducts(list, {
       query: q,
-      category: categorySelect.value,
+      category: kategori,
       sort: sortSelect.value,
     });
     if (brand !== "Semua") hasil = hasil.filter((p) => p.brand === brand);
+    if (categorySelect.value === "Promo") hasil = hasil.filter((p) => p.originalPrice && p.originalPrice > p.harga);
     renderItems(hasil);
   }
 
@@ -529,6 +564,39 @@ ${noticeHtml}
   });
   brandSelect.addEventListener("change", update);
   sortSelect.addEventListener("change", update);
+
+  // Flash promo countdown
+  if (flashTimer) clearInterval(flashTimer);
+  const timerEl = panel.querySelector("#flash-timer");
+  const deadlineKey = "rasanusa-promo-deadline";
+  let deadline = Number(sessionStorage.getItem(deadlineKey) || 0);
+  if (!deadline || deadline < Date.now()) {
+    deadline = Date.now() + 3 * 60 * 60 * 1000;
+    sessionStorage.setItem(deadlineKey, String(deadline));
+  }
+  function paintTimer() {
+    const sisa = Math.max(0, deadline - Date.now());
+    const h = Math.floor((sisa % 86400000) / 3600000);
+    const m = Math.floor((sisa % 3600000) / 60000);
+    const s = Math.floor((sisa % 60000) / 1000);
+    timerEl.innerHTML = `
+      <div class="flash-unit"><b>${String(h).padStart(2, "0")}</b><small>Jam</small></div>
+      <div class="flash-unit"><b>${String(m).padStart(2, "0")}</b><small>Menit</small></div>
+      <div class="flash-unit"><b>${String(s).padStart(2, "0")}</b><small>Detik</small></div>`;
+    if (sisa <= 0) {
+      clearInterval(flashTimer);
+      sessionStorage.removeItem(deadlineKey);
+    }
+  }
+  paintTimer();
+  flashTimer = setInterval(paintTimer, 1000);
+
+  panel.querySelector("[data-flash-cta]")?.addEventListener("click", () => {
+    categorySelect.value = "Promo";
+    panel.querySelectorAll("[data-kategori-cepat]").forEach((c) => c.classList.toggle("aktif", c.dataset.kategoriCepat === "Promo"));
+    update();
+    document.getElementById("catalog")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
   panel.querySelectorAll("[data-kategori-cepat]").forEach((btn) => {
     btn.addEventListener("click", () => {
       categorySelect.value = btn.dataset.kategoriCepat;
