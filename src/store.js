@@ -2,6 +2,8 @@ import { products as seedProducts } from "./products.js";
 import { isValidImageUrl } from "./utils/dom.js";
 
 const KEY = "rasanusa:products:v1";
+const CART_KEY = "rasanusa:cart:v1";
+const WISHLIST_KEY = "rasanusa:wishlist:v1";
 
 export const KATEGORI_VALID = ["Laptop", "Komponen", "Aksesoris", "Periferal"];
 
@@ -19,6 +21,21 @@ function setNotice(message, type = "error") {
 
 export function isValidCategory(kategori) {
   return KATEGORI_VALID.includes(kategori);
+}
+
+// Normalisasi field opsional (brand, rating, badge, specs, reviews) dengan default aman.
+export function normalizeProduct(p) {
+  if (!p || typeof p !== "object") return p;
+  return {
+    ...p,
+    brand: typeof p.brand === "string" && p.brand.trim() ? p.brand : "Umum",
+    rating: typeof p.rating === "number" && p.rating >= 0 && p.rating <= 5 ? p.rating : 0,
+    reviewCount: Number.isInteger(p.reviewCount) && p.reviewCount >= 0 ? p.reviewCount : 0,
+    badge: ["sale", "bestseller", "new"].includes(p.badge) ? p.badge : null,
+    originalPrice: typeof p.originalPrice === "number" && p.originalPrice > 0 ? p.originalPrice : null,
+    specs: p.specs && typeof p.specs === "object" && !Array.isArray(p.specs) ? p.specs : {},
+    reviews: Array.isArray(p.reviews) ? p.reviews.filter((r) => r && typeof r === "object") : [],
+  };
 }
 
 // Validasi struktur + tipe tiap field. Kembalikan array pesan error (kosong = valid).
@@ -69,17 +86,10 @@ export function loadProducts() {
       }
       const v = validateProducts(parsed);
       if (v.ok) {
-        // Migrasi:isi imageUrl dari seed, dan buang produk RSN-007/008 yang sudah dihapus dari seed.
-        const kept = structuredClone(v.products).filter((p) => {
-          // izinkan produk tetap ada meski ID tidak di seed (mis. RSN-999 dari test).
-          // hanya hapus yang id-nya RSN-007 atau RSN-008 (sudah tidak ada di products.js).
-          if (/^RSN-00[78]$/.test(p.id)) return false;
-          return true;
-        });
-        // isi imageUrl yang kosong dari seed correspond.
+        const kept = structuredClone(v.products).filter((p) => !/^RSN-00[78]$/.test(p.id));
         const migrated = kept.map((p) => {
           const seed = seedProducts.find((s) => s.id === p.id);
-          return { ...p, imageUrl: p.imageUrl || seed?.imageUrl || "" };
+          return normalizeProduct({ ...p, imageUrl: p.imageUrl || seed?.imageUrl || "" });
         });
         if (migrated.length !== kept.length) saveProducts(migrated);
         return migrated;
@@ -109,12 +119,15 @@ export function resetProducts() {
 export function upsertProduct(list, product) {
   const errs = validateProduct(product);
   if (errs.length) throw new Error(errs.join("; "));
-  if (list.some((p) => p.id === product.id)) {
-    const next = list.map((p) => (p.id === product.id ? product : p));
+  const existing = list.find((p) => p.id === product.id);
+  // Edit: gabung dengan data lama agar field opsional (specs/reviews/brand) tidak hilang.
+  const merged = normalizeProduct(existing ? { ...existing, ...product } : product);
+  if (existing) {
+    const next = list.map((p) => (p.id === merged.id ? merged : p));
     saveProducts(next);
     return next;
   }
-  const next = [...list, product];
+  const next = [...list, merged];
   saveProducts(next);
   return next;
 }
@@ -130,7 +143,6 @@ export function exportProducts(list) {
   return JSON.stringify(list, null, 2);
 }
 
-// Import JSON: parse + validasi struktur/tipe. Lempar Error kalau tidak valid.
 export function importProducts(jsonText) {
   let data;
   try {
@@ -140,8 +152,9 @@ export function importProducts(jsonText) {
   }
   const v = validateProducts(data);
   if (!v.ok) throw new Error("Import ditolak: " + v.errors.join("; "));
-  saveProducts(data);
-  return data;
+  const normalized = data.map(normalizeProduct);
+  saveProducts(normalized);
+  return normalized;
 }
 
 export function generateId(list) {
@@ -151,4 +164,94 @@ export function generateId(list) {
     if (m) max = Math.max(max, Number(m[1]));
   }
   return `RSN-${String(max + 1).padStart(3, "0")}`;
+}
+
+// ---------------------------------------------------------------------------
+// Cart (persisten di localStorage)
+// ---------------------------------------------------------------------------
+export function loadCart() {
+  try {
+    const raw = localStorage.getItem(CART_KEY);
+    if (!raw) return [];
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data)) return [];
+    return data.filter((i) => i && typeof i.id === "string" && Number.isInteger(i.qty) && i.qty > 0);
+  } catch {
+    return [];
+  }
+}
+
+export function saveCart(cart) {
+  localStorage.setItem(CART_KEY, JSON.stringify(cart));
+}
+
+export function addToCart(cart, id, qty = 1) {
+  const idx = cart.findIndex((i) => i.id === id);
+  let next;
+  if (idx >= 0) next = cart.map((i, k) => (k === idx ? { ...i, qty: i.qty + qty } : i));
+  else next = [...cart, { id, qty }];
+  saveCart(next);
+  return next;
+}
+
+export function updateCartQty(cart, id, qty) {
+  let next;
+  if (qty <= 0) next = cart.filter((i) => i.id !== id);
+  else next = cart.map((i) => (i.id === id ? { ...i, qty } : i));
+  saveCart(next);
+  return next;
+}
+
+export function removeFromCart(cart, id) {
+  const next = cart.filter((i) => i.id !== id);
+  saveCart(next);
+  return next;
+}
+
+export function clearCart() {
+  saveCart([]);
+  return [];
+}
+
+export function cartCount(cart) {
+  return cart.reduce((s, i) => s + i.qty, 0);
+}
+
+export function cartTotal(list, cart) {
+  return cart.reduce((s, i) => {
+    const p = list.find((x) => x.id === i.id);
+    return p ? s + p.harga * i.qty : s;
+  }, 0);
+}
+
+// ---------------------------------------------------------------------------
+// Wishlist (persisten di localStorage)
+// ---------------------------------------------------------------------------
+export function loadWishlist() {
+  try {
+    const raw = localStorage.getItem(WISHLIST_KEY);
+    if (!raw) return [];
+    const data = JSON.parse(raw);
+    return Array.isArray(data) ? data.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveWishlist(ids) {
+  localStorage.setItem(WISHLIST_KEY, JSON.stringify(ids));
+}
+
+export function toggleWishlist(ids, id) {
+  const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
+  saveWishlist(next);
+  return next;
+}
+
+export function isInWishlist(ids, id) {
+  return ids.includes(id);
+}
+
+export function getBrands(list) {
+  return [...new Set(list.map((p) => p.brand).filter(Boolean))].sort();
 }
