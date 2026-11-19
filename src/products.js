@@ -6,7 +6,7 @@ export const products = [
     harga: 5999000,
     stok: 12,
     deskripsi: "Laptop 14 inci, Ryzen 5, RAM 8GB, SSD 512GB untuk kerja dan kuliah.",
-    imageUrl: "",
+    imageUrl: "/images/laptop-asus.svg",
     unggulan: true,
   },
   {
@@ -16,7 +16,7 @@ export const products = [
     harga: 5499000,
     stok: 8,
     deskripsi: "Laptop tipis 15,6 inci, Core i5, RAM 8GB, SSD 512GB.",
-    imageUrl: "",
+    imageUrl: "/images/laptop-lenovo.svg",
     unggulan: false,
   },
   {
@@ -26,7 +26,7 @@ export const products = [
     harga: 1250000,
     stok: 15,
     deskripsi: "Monitor 24 inci Full HD, panel IPS, input HDMI dan VGA.",
-    imageUrl: "",
+    imageUrl: "/images/monitor-led.svg",
     unggulan: true,
   },
   {
@@ -36,7 +36,7 @@ export const products = [
     harga: 450000,
     stok: 25,
     deskripsi: "Keyboard mechanical switch brown, lighting RGB, layout 87 key.",
-    imageUrl: "",
+    imageUrl: "/images/keyboard-mechanical.svg",
     unggulan: false,
   },
   {
@@ -46,7 +46,7 @@ export const products = [
     harga: 150000,
     stok: 0,
     deskripsi: "Mouse nirkabel 2.4GHz, 6 tombol, baterai isi ulang.",
-    imageUrl: "",
+    imageUrl: "/images/mouse-wireless.svg",
     unggulan: false,
   },
   {
@@ -56,7 +56,7 @@ export const products = [
     harga: 675000,
     stok: 30,
     deskripsi: "SSD NVMe Gen3 512GB, baca hingga 2000 MB/s untuk upgrade laptop.",
-    imageUrl: "",
+    imageUrl: "/images/ssd-nvme.svg",
     unggulan: false,
   },
   {
@@ -66,7 +66,7 @@ export const products = [
     harga: 350000,
     stok: 20,
     deskripsi: "Memory DDR4 8GB 3200MHz, kompatibel untuk PC dan laptop.",
-    imageUrl: "",
+    imageUrl: "/images/ram-ddr4.svg",
     unggulan: false,
   },
   {
@@ -76,7 +76,7 @@ export const products = [
     harga: 1850000,
     stok: 6,
     deskripsi: "Printer inkjet multifungsi: cetak, scan, copy dengan koneksi USB.",
-    imageUrl: "",
+    imageUrl: "/images/printer-inkjet.svg",
     unggulan: false,
   },
 ];

@@ -68,7 +68,13 @@ export function loadProducts() {
         return structuredClone(seedProducts);
       }
       const v = validateProducts(parsed);
-      if (v.ok) return structuredClone(v.products);
+      if (v.ok) {
+        // Data lama mungkin punya imageUrl kosong: isi dari seed berdasarkan id.
+        return structuredClone(v.products).map((p) => {
+          const seed = seedProducts.find((s) => s.id === p.id);
+          return { ...p, imageUrl: p.imageUrl || seed?.imageUrl || "" };
+        });
+      }
       setNotice("Data tersimpan tidak valid strukturnya. Data contoh telah dipulihkan.");
       saveProducts(structuredClone(seedProducts));
       return structuredClone(seedProducts);
