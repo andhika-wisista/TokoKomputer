@@ -69,11 +69,20 @@ export function loadProducts() {
       }
       const v = validateProducts(parsed);
       if (v.ok) {
-        // Data lama mungkin punya imageUrl kosong: isi dari seed berdasarkan id.
-        return structuredClone(v.products).map((p) => {
+        // Migrasi:isi imageUrl dari seed, dan buang produk RSN-007/008 yang sudah dihapus dari seed.
+        const kept = structuredClone(v.products).filter((p) => {
+          // izinkan produk tetap ada meski ID tidak di seed (mis. RSN-999 dari test).
+          // hanya hapus yang id-nya RSN-007 atau RSN-008 (sudah tidak ada di products.js).
+          if (/^RSN-00[78]$/.test(p.id)) return false;
+          return true;
+        });
+        // isi imageUrl yang kosong dari seed correspond.
+        const migrated = kept.map((p) => {
           const seed = seedProducts.find((s) => s.id === p.id);
           return { ...p, imageUrl: p.imageUrl || seed?.imageUrl || "" };
         });
+        if (migrated.length !== kept.length) saveProducts(migrated);
+        return migrated;
       }
       setNotice("Data tersimpan tidak valid strukturnya. Data contoh telah dipulihkan.");
       saveProducts(structuredClone(seedProducts));
