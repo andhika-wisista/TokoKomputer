@@ -63,8 +63,8 @@ export function showView(name) {
   });
 
   // Re‑render panels that depend on data
-  if (name === "cart") renderCart(activeList);
-  if (name === "wishlist") renderWishlist(activeList);
+  if (name === "cart") renderCart(loadCart());
+  if (name === "wishlist") renderWishlist(loadWishlist());
   renderBadges();
 }
 
@@ -263,7 +263,7 @@ function renderCart(list) {
                 <td>
                   <input type="number" min="1" value="${item.qty}" data-id="${item.id}" class="qty-input" style="width:4rem;">
                 </td>
-                <td>Rp ${(harga * item.qty).toLocaleString("id-ID")}</td>
+                <td>Rp ${(p ? p.harga * item.qty : 0).toLocaleString("id-ID")}</td>
                 <td><button class="btn-small danger hapus-dari-cart" data-id="${item.id}" style="width:100%;">Hapus</button></td>
               </tr>`;
             }).join("")}
