@@ -136,14 +136,7 @@ main { min-height: 60vh; }
 
 /* Buttons */
 .btn-primary {
-  display: inline-block;
-  background: var(--accent-primary);
-  color: #fff;
-  text-decoration: none;
-  padding: 0.8rem 1.5rem;
-  border-radius: 6px;
-  font-weight: 600;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+.btn-primary { display: inline-block; background: var(--accent-primary); color: #fff; text-decoration: none; padding: 0.8rem 1.5rem; border-radius: 6px; font-weight: 600; transition: background 0.2s ease, box-shadow 0.2s ease; }
 }
 
 .btn-primary:hover {
@@ -709,4 +702,50 @@ body { scroll-padding-top: 90px; overflow-x: clip; }
 @media (max-width: 480px) {
   .login-card { padding: 1.5rem; }
   .nav-user { flex-wrap: wrap; justify-content: flex-end; }
+}
+
+/* Mobile navigation */
+.hamburger { display: none; border: 1px solid var(--border-default); background: var(--bg-card); border-radius: 10px; padding: .55rem; cursor: pointer; }
+.hamburger span { display: block; width: 22px; height: 2px; background: var(--text-primary); margin: 4px; transition: transform .2s, opacity .2s; }
+.hamburger[aria-expanded="true"] span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.hamburger[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.hamburger[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+/* Sections directly below hero */
+.promo-carousel { position: relative; overflow: hidden; margin: 1.5rem clamp(1rem,4vw,2rem); border: 1px solid var(--border-default); border-radius: 18px; background: linear-gradient(120deg,#f0fdf4,#fffdf7); box-shadow: 0 10px 28px rgba(31,95,69,.08); }
+.carousel-track { display: flex; transition: transform .4s ease; }
+.carousel-card { flex: 0 0 100%; min-width: 100%; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: center; gap: 1.5rem; padding: 1.25rem 4.5rem; }
+.carousel-media { display: grid; place-items: center; height: 190px; border-radius: 14px; overflow: hidden; background: #e8f3ec; }
+.carousel-media img { width: 100%; height: 100%; object-fit: contain; }
+.carousel-body h3 { margin: .35rem 0; font-size: clamp(1.2rem,2.5vw,1.8rem); }
+.carousel-body .price { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.carousel-prev,.carousel-next { position: absolute; z-index: 2; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border: 1px solid var(--border-default); background: var(--bg-card); border-radius: 50%; font-size: 1.4rem; cursor: pointer; }
+.carousel-prev { left: .75rem; } .carousel-next { right: .75rem; }
+.flash-inner { grid-template-columns: minmax(190px,.65fr) minmax(0,1.35fr) !important; gap: 1.25rem; }
+.flash-rail { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .75rem; }
+.flash-card { min-width: 0; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 14px; padding: .65rem; cursor: pointer; transition: transform .18s,box-shadow .18s; }
+.flash-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px #0002; }
+.flash-media { height: 105px; display: grid; place-items: center; border-radius: 10px; overflow: hidden; background: #e8f3ec; }
+.flash-media img { width: 100%; height: 100%; object-fit: contain; }
+.flash-body p { font-size: .75rem; color: var(--muted-text); margin: .45rem 0 .15rem; }
+.flash-body h3 { font-size: .9rem; line-height: 1.3; margin: 0; }
+.flash-body .price { font-size: .85rem; margin: .45rem 0 0; }
+@media (max-width: 760px) {
+  .carousel-card { grid-template-columns: 1fr; gap: .5rem; padding: 1rem 3.25rem; }
+  .carousel-media { height: 150px; }
+  .flash-inner { grid-template-columns: 1fr !important; }
+  .flash-rail { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .flash-rail .flash-card:last-child { display: none; }
+}
+@media (max-width: 700px) {
+  .hamburger { display: block; margin-left: auto; }
+  .navbar .tabs { display: none; position: absolute; top: 100%; left: .75rem; right: .75rem; z-index: 30; padding: .6rem; background: var(--bg-card); border: 1px solid var(--border-default); box-shadow: 0 14px 30px rgba(0,0,0,.14); flex-direction: column; align-items: stretch; }
+  .navbar .tabs.menu-open { display: flex; }
+  .tab { text-align: left; white-space: nowrap; padding: .7rem .85rem; }
+}
+@media (max-width: 430px) {
+  .carousel-card { padding-inline: 3rem; }
+  .flash-section { padding: 1rem; }
+  .flash-rail { grid-template-columns: 1fr; }
+  .flash-rail .flash-card:nth-child(n+2) { display: none; }
 }

@@ -12,6 +12,15 @@ import {
   saveProducts,
   validateProduct,
   validateProducts,
+  addRecent,
+  loadRecent,
+  loadCompare,
+  toggleCompare,
+  clearCompare,
+  loadOrders,
+  addOrder,
+  loadVoucherClaims,
+  claimVoucher,
 } from "../src/store.js";
 
 const storage = new Map();
@@ -77,6 +86,37 @@ describe("filterProducts", () => {
   it("query kosong mengembalikan semua produk", () => {
     const r = filterProducts(products, { query: "", category: "Semua", sort: "default" });
     expect(r).toHaveLength(products.length);
+  });
+});
+
+describe("shopMenuStore", () => {
+  it("simpan order dan klaim voucher", () => {
+    expect(addOrder({ total: 1000, items: [] })).toHaveLength(1);
+    expect(loadOrders()[0].status).toBe("Menunggu pembayaran");
+    expect(claimVoucher("HEMAT10")).toBe(true);
+    expect(loadVoucherClaims()).toContain("HEMAT10");
+    expect(claimVoucher("HEMAT10")).toBe(false);
+  });
+});
+
+describe("compareProducts", () => {
+  it("tambah produk, batasi 3, tidak duplikat", () => {
+    let list = loadCompare();
+    list = toggleCompare(list, "RSN-001");
+    list = toggleCompare(list, "RSN-002");
+    expect(list).toEqual(["RSN-001", "RSN-002"]);
+    list = toggleCompare(list, "RSN-003");
+    list = toggleCompare(list, "RSN-004");
+    expect(list).toHaveLength(3);
+    list = toggleCompare(list, "RSN-005");
+    expect(list).not.toContain("RSN-005");
+  });
+
+  it("hapus produk dari compare", () => {
+    let list = loadCompare();
+    list = toggleCompare(list, "RSN-001");
+    list = toggleCompare(list, "RSN-001");
+    expect(list).toHaveLength(0);
   });
 });
 

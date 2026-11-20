@@ -1,6 +1,8 @@
 import {
   getNotice, KATEGORI_VALID, loadCart, addToCart, updateCartQty,
-  removeFromCart, clearCart, loadWishlist, toggleWishlist, cartCount, cartTotal
+  removeFromCart, clearCart, loadWishlist, toggleWishlist, cartCount, cartTotal,
+  loadRecent, addRecent, loadCompare, toggleCompare, clearCompare,
+  loadOrders, addOrder, loadVoucherClaims, claimVoucher
 } from "./store.js";
 import { WA_PHONE } from "./config.js";
 import { escapeHtml } from "./utils/dom.js";
@@ -67,10 +69,14 @@ export function renderShell() {
 
 <header class="navbar">
   <div class="logo">Toko<span>komputer</span></div>
-  <nav class="tabs" aria-label="Navigasi">
+  <button type="button" class="hamburger" aria-label="Buka menu" aria-expanded="false" aria-controls="main-navigation"><span></span><span></span><span></span></button>
+  <nav id="main-navigation" class="tabs" aria-label="Navigasi">
     <button type="button" class="tab active" data-view-tab="catalog">Katalog</button>
     <button type="button" class="tab" data-view-tab="cart">Keranjang <span class="nav-badge">0</span></button>
     <button type="button" class="tab" data-view-tab="wishlist">Wishlist <span class="nav-badge">0</span></button>
+    <button type="button" class="tab" data-view-tab="orders">Pesanan</button>
+    <button type="button" class="tab" data-view-tab="vouchers">Voucher</button>
+    <button type="button" class="tab" data-view-tab="help">Bantuan</button>
     <button type="button" class="tab" data-view-tab="lokasi">Lokasi</button>
     ${dashboardTab}
   </nav>
@@ -81,6 +87,9 @@ export function renderShell() {
   <section id="view-catalog" data-view-panel></section>
   <section id="view-cart" data-view-panel hidden></section>
   <section id="view-wishlist" data-view-panel hidden></section>
+  <section id="view-orders" data-view-panel hidden></section>
+  <section id="view-vouchers" data-view-panel hidden></section>
+  <section id="view-help" data-view-panel hidden></section>
   <section id="view-lokasi" data-view-panel hidden></section>
   <section id="view-dashboard" data-view-panel hidden></section>
 </main>
@@ -122,11 +131,24 @@ export function renderShell() {
   </div>
 </footer>
 
+<div id="compare-bar" class="compare-bar" hidden aria-live="polite"></div>
 <div id="toast-root" aria-live="polite"></div>
 <div id="product-modal" class="modal" hidden></div>`;
 
+  const hamburger = app.querySelector(".hamburger");
+  const navigation = app.querySelector("#main-navigation");
+  hamburger?.addEventListener("click", () => {
+    const open = navigation.classList.toggle("menu-open");
+    hamburger.setAttribute("aria-expanded", String(open));
+    hamburger.setAttribute("aria-label", open ? "Tutup menu" : "Buka menu");
+  });
   app.querySelectorAll("[data-view-tab]").forEach((btn) => {
-    btn.addEventListener("click", () => showView(btn.dataset.viewTab));
+    btn.addEventListener("click", () => {
+      showView(btn.dataset.viewTab);
+      navigation?.classList.remove("menu-open");
+      hamburger?.setAttribute("aria-expanded", "false");
+      hamburger?.setAttribute("aria-label", "Buka menu");
+    });
   });
 
   app.querySelectorAll("[data-action]").forEach((el) => {
@@ -169,6 +191,9 @@ export function showView(name) {
 
   if (name === "cart") renderCart(loadCart());
   if (name === "wishlist") renderWishlist(loadWishlist());
+  if (name === "orders") renderOrders();
+  if (name === "vouchers") renderVouchers();
+  if (name === "help") renderHelp();
   renderBadges();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -310,6 +335,11 @@ export function renderCatalog(list) {
     ? (allProducts.reduce((s, p) => s + (Number(p.rating) || 0), 0) / allProducts.length).toFixed(1)
     : "0.0";
   const totalUlasan = allProducts.reduce((s, p) => s + (Number(p.reviewCount) || 0), 0);
+    const recent = loadRecent();
+    const promoProducts = allProducts
+      .filter((p) => p.originalPrice && p.originalPrice > p.harga)
+      .sort((a, b) => (b.originalPrice - b.harga) - (a.originalPrice - a.harga))
+      .slice(0, 6);
 
   panel.innerHTML = `
 <section class="hero">
@@ -350,6 +380,25 @@ export function renderCatalog(list) {
 
 ${noticeHtml}
 
+<div class="promo-carousel" aria-label="Promo bergerak">
+  <button type="button" class="carousel-prev" aria-label="Promo sebelumnya">‹</button>
+  <div class="carousel-track">
+    ${promoProducts.slice(0, 3).map((p) => `
+      <article class="carousel-card" data-id="${escapeHtml(p.id)}" tabindex="0">
+        <div class="carousel-media" style="background: #e8f3ec">
+          ${p.imageUrl ? `<img src="${escapeHtml(p.imageUrl)}" alt="${escapeHtml(p.nama)}" loading="lazy" />` : `<div class="ph">Foto</div>`}
+        </div>
+        <div class="carousel-body">
+          <p class="cat">${escapeHtml(p.kategori)}${p.brand ? " · " + escapeHtml(p.brand) : ""}</p>
+          <h3>${escapeHtml(p.nama)}</h3>
+          <p class="price"><strong>${rupiah(p.harga)}</strong> <span class="hemat">Hemat ${rupiah(p.originalPrice - p.harga)}</span></p>
+        </div>
+      </article>
+    `).join("")}
+  </div>
+  <button type="button" class="carousel-next" aria-label="Promo berikutnya">›</button>
+</div>
+
 <section class="flash-section" aria-label="Promo terbatas">
   <div class="flash-inner">
     <div class="flash-copy">
@@ -357,8 +406,22 @@ ${noticeHtml}
       <h2>Buruan sebelum kehabisan</h2>
       <p>Produk unggulan dengan stok terbatas. Hitung mundur promo berakhir:</p>
       <div class="flash-timer" id="flash-timer" aria-live="polite">Memuat...</div>
+      <button type="button" class="btn-primary" data-flash-cta>Lihat produk promo</button>
     </div>
-    <button type="button" class="btn-primary" data-flash-cta>Lihat produk promo</button>
+    <div class="flash-rail" aria-live="polite">
+      ${promoProducts.slice(1, 4).map((p) => `
+        <article class="flash-card" data-id="${escapeHtml(p.id)}" tabindex="0" role="button" aria-label="Lihat ${escapeHtml(p.nama)}">
+          <div class="flash-media" style="background: #e8f3ec">
+            ${p.imageUrl ? `<img src="${escapeHtml(p.imageUrl)}" alt="${escapeHtml(p.nama)}" loading="lazy" />` : `<div class="ph">Foto</div>`}
+          </div>
+          <div class="flash-body">
+            <p>${escapeHtml(p.kategori)}${p.brand ? " · " + escapeHtml(p.brand) : ""}</p>
+            <h3>${escapeHtml(p.nama)}</h3>
+            <p class="price">${rupiah(p.harga)} <span class="hemat">Hemat ${rupiah(p.originalPrice - p.harga)}</span></p>
+          </div>
+        </article>
+      `).join("")}
+    </div>
   </div>
 </section>
 
@@ -478,6 +541,31 @@ ${noticeHtml}
   </div>
 </section>
 
+<section class="recent-section ${recent.length ? "" : "is-empty"}" aria-label="Produk terakhir dilihat">
+  <div class="section-head">
+    <div>
+      <span class="eyebrow">Riwayat</span>
+      <h2>Produk Terakhir Dilihat</h2>
+    </div>
+    <span class="count-badge">${recent.length} item</span>
+  </div>
+  <div class="unggulan-rail">
+    ${recent.map((id) => {
+      const p = allProducts.find((x) => x.id === id);
+      if (!p) return "";
+      return `<article class="card" data-id="${escapeHtml(p.id)}" tabindex="0" role="button" aria-label="Lihat detail ${escapeHtml(p.nama)}">
+        <div class="card-media"><img src="${escapeHtml(p.imageUrl)}" alt="${escapeHtml(p.nama)}" loading="lazy" /></div>
+        <div class="card-body">
+          <p class="cat">${escapeHtml(p.kategori)}${p.brand ? " · " + escapeHtml(p.brand) : ""}</p>
+          <h3>${escapeHtml(p.nama)}</h3>
+          <p class="price">${rupiah(p.harga)} ${p.originalPrice && p.originalPrice > p.harga ? `<s class="harga-lama">${rupiah(p.originalPrice)}</s>` : ""}</p>
+          <div class="card-rating">${bintang(p.rating)} <span>${Number(p.rating).toFixed(1)} (${p.reviewCount})</span></div>
+        </div>
+      </article>`;
+    }).join("")}
+  </div>
+</section>
+
 <section class="peta-teaser">
   <div class="peta-teaser-copy">
     <span class="eyebrow">Kunjungi kami</span>
@@ -490,12 +578,18 @@ ${noticeHtml}
   </div>
 </section>`;
 
-  panel.querySelector(".unggulan-rail")?.addEventListener("click", (e) => {
-    const card = e.target.closest("article[data-id]");
-    if (!card) return;
-    const p = allProducts.find((x) => x.id === card.dataset.id);
-    if (p) openProductModal(p);
-  });
+  panel.querySelectorAll(".unggulan-rail").forEach((rail) => {
+      rail.addEventListener("click", (e) => {
+        const card = e.target.closest("article[data-id]");
+        if (!card) return;
+        const p = allProducts.find((x) => x.id === card.dataset.id);
+        if (p) {
+          addRecent(loadRecent(), p.id);
+          renderRecentSection();
+          openProductModal(p);
+        }
+      });
+    });
 
   panel.querySelectorAll("[data-goto-lokasi]").forEach((el) => {
     el.addEventListener("click", () => showView("lokasi"));
@@ -519,7 +613,8 @@ ${noticeHtml}
       const stokLabel = p.stok > 0 ? `Stok ${p.stok}` : "Stok habis";
       const stokKelas = p.stok > 0 ? "stok-ada" : "stok-habis";
       const badge = p.unggulan ? `<span class="badge">Unggulan</span>` : "";
-      const heart = wishlist.includes(p.id) ? "♥" : "♡";
+            const heart = wishlist.includes(p.id) ? "♥" : "♡";
+            const compared = loadCompare().includes(p.id);
       return `<article class="card" data-id="${escapeHtml(p.id)}" tabindex="0" role="button" aria-label="Lihat detail ${escapeHtml(p.nama)}">
         <div class="card-media">
           ${p.imageUrl ? `<img src="${escapeHtml(p.imageUrl)}" alt="${escapeHtml(p.nama)}" loading="lazy" />` : `<div class="ph">Foto produk</div>`}
@@ -532,6 +627,7 @@ ${noticeHtml}
           <p class="price">${rupiah(p.harga)} ${diskon}</p>
           <div class="card-rating">${bintang(p.rating)} <span>${Number(p.rating).toFixed(1)} (${p.reviewCount})</span></div>
           <p class="stok ${stokKelas}">${stokLabel}</p>
+          <label class="compare-check"><input type="checkbox" data-compare-id="${escapeHtml(p.id)}" ${compared ? "checked" : ""} /> Bandingkan</label>
           <div class="card-actions">
             <button class="wa" type="button" ${p.stok <= 0 ? "disabled" : ""} data-id="${escapeHtml(p.id)}">Pesan via WhatsApp</button>
             <button class="btn-small add-to-cart" type="button" data-id="${escapeHtml(p.id)}" ${p.stok <= 0 ? "disabled" : ""}>Tambah ke keranjang</button>
@@ -591,6 +687,31 @@ ${noticeHtml}
   paintTimer();
   flashTimer = setInterval(paintTimer, 1000);
 
+  // Carousel promo
+  const carouselTrack = panel.querySelector(".carousel-track");
+  const carouselCards = panel.querySelectorAll(".carousel-card");
+  let carouselIndex = 0;
+  function paintCarousel() {
+    const step = 100;
+    carouselTrack.style.transform = `translateX(-${carouselIndex * step}%)`;
+  }
+  panel.querySelector(".carousel-prev")?.addEventListener("click", () => {
+    carouselIndex = Math.max(0, carouselIndex - 1);
+    paintCarousel();
+  });
+  panel.querySelector(".carousel-next")?.addEventListener("click", () => {
+    carouselIndex = Math.min(carouselCards.length - 1, carouselIndex + 1);
+    paintCarousel();
+  });
+
+  // Flash rail: click card to open product modal
+  panel.querySelectorAll(".flash-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      const p = allProducts.find((x) => x.id === card.dataset.id);
+      if (p) openProductModal(p);
+    });
+  });
+
   panel.querySelector("[data-flash-cta]")?.addEventListener("click", () => {
     categorySelect.value = "Promo";
     panel.querySelectorAll("[data-kategori-cepat]").forEach((c) => c.classList.toggle("aktif", c.dataset.kategoriCepat === "Promo"));
@@ -606,6 +727,15 @@ ${noticeHtml}
   });
 
   grid.addEventListener("click", (e) => {
+    const compare = e.target.closest("[data-compare-id]");
+    if (compare) {
+      e.stopPropagation();
+      const next = toggleCompare(loadCompare(), compare.dataset.compareId);
+      if (!compare.checked && next.includes(compare.dataset.compareId)) compare.checked = true;
+      if (compare.checked && !next.includes(compare.dataset.compareId)) compare.checked = false;
+      renderCompareBar();
+      return;
+    }
     const heart = e.target.closest(".wishlist-heart");
     if (heart) {
       e.stopPropagation();
@@ -640,7 +770,11 @@ ${noticeHtml}
     const card = e.target.closest("article[data-id]");
     if (card) {
       const p = allProducts.find((x) => x.id === card.dataset.id);
-      if (p) openProductModal(p);
+      if (p) {
+        addRecent(loadRecent(), p.id);
+        renderRecentSection();
+        openProductModal(p);
+      }
     }
   });
 
@@ -650,11 +784,37 @@ ${noticeHtml}
     if (card && e.target === card) {
       e.preventDefault();
       const p = allProducts.find((x) => x.id === card.dataset.id);
-      if (p) openProductModal(p);
+      if (p) {
+        addRecent(loadRecent(), p.id);
+        renderRecentSection();
+        openProductModal(p);
+      }
     }
   });
 
   update();
+  renderCompareBar();
+}
+
+function renderCompareBar() {
+  const bar = document.getElementById("compare-bar");
+  if (!bar) return;
+  const ids = loadCompare();
+  const items = ids.map((id) => allProducts.find((p) => p.id === id)).filter(Boolean);
+  bar.hidden = !items.length;
+  bar.innerHTML = items.length ? `<strong>Bandingkan ${items.length}/3</strong>${items.map((p) => `<span>${escapeHtml(p.nama)}</span>`).join("")}<button type="button" class="btn-primary" data-open-compare>Lihat perbandingan</button><button type="button" class="btn-secondary" data-clear-compare>Kosongkan</button>` : "";
+  bar.querySelector("[data-clear-compare]")?.addEventListener("click", () => { clearCompare(); renderCatalog(activeList); });
+  bar.querySelector("[data-open-compare]")?.addEventListener("click", () => openCompareModal(items));
+}
+
+function openCompareModal(items) {
+  const modal = document.getElementById("product-modal");
+  if (!modal || !items.length) return;
+  const keys = [...new Set(items.flatMap((p) => Object.keys(p.specs || {})))];
+  modal.innerHTML = `<div class="modal-dialog compare-dialog" role="dialog" aria-modal="true"><button type="button" class="modal-close" data-modal-close aria-label="Tutup">×</button><h2>Perbandingan Produk</h2><div class="compare-table-wrap"><table class="compare-table"><thead><tr><th>Spesifikasi</th>${items.map((p) => `<th>${escapeHtml(p.nama)}<br><strong>${rupiah(p.harga)}</strong></th>`).join("")}</tr></thead><tbody>${keys.map((k) => `<tr><th>${escapeHtml(k)}</th>${items.map((p) => `<td>${escapeHtml(String(p.specs?.[k] || "—"))}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
+  modal.hidden = false;
+  document.body.classList.add("modal-open");
+  modal.querySelector("[data-modal-close]").addEventListener("click", closeProductModal);
 }
 
 function bukaWhatsAppProduk(p) {
@@ -672,6 +832,33 @@ function bukaWhatsAppProduk(p) {
 // ---------------------------------------------------------------------------
 // Detail produk — modal lengkap (specs, ulasan, produk terkait)
 // ---------------------------------------------------------------------------
+function renderRecentSection() {
+  const recent = loadRecent();
+  const section = document.querySelector(".recent-section");
+  if (!section) return;
+  if (!recent.length) {
+    section.classList.add("is-empty");
+    section.querySelector(".count-badge").textContent = "0 item";
+    section.querySelector(".unggulan-rail").innerHTML = "";
+    return;
+  }
+  section.classList.remove("is-empty");
+  section.querySelector(".count-badge").textContent = `${recent.length} item`;
+  section.querySelector(".unggulan-rail").innerHTML = recent.map((id) => {
+    const p = allProducts.find((x) => x.id === id);
+    if (!p) return "";
+    return `<article class="card" data-id="${escapeHtml(p.id)}" tabindex="0" role="button" aria-label="Lihat detail ${escapeHtml(p.nama)}">
+      <div class="card-media"><img src="${escapeHtml(p.imageUrl)}" alt="${escapeHtml(p.nama)}" loading="lazy" /></div>
+      <div class="card-body">
+        <p class="cat">${escapeHtml(p.kategori)}${p.brand ? " · " + escapeHtml(p.brand) : ""}</p>
+        <h3>${escapeHtml(p.nama)}</h3>
+        <p class="price">${rupiah(p.harga)} ${p.originalPrice && p.originalPrice > p.harga ? `<s class="harga-lama">${rupiah(p.originalPrice)}</s>` : ""}</p>
+        <div class="card-rating">${bintang(p.rating)} <span>${Number(p.rating).toFixed(1)} (${p.reviewCount})</span></div>
+      </div>
+    </article>`;
+  }).join("");
+}
+
 export function openProductModal(p) {
   const modal = document.getElementById("product-modal");
   if (!modal || !p) return;
@@ -801,7 +988,11 @@ export function openProductModal(p) {
   modal.querySelectorAll("[data-related]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const relatedProduct = allProducts.find((x) => x.id === btn.dataset.related);
-      if (relatedProduct) openProductModal(relatedProduct);
+      if (relatedProduct) {
+        addRecent(loadRecent(), relatedProduct.id);
+        renderRecentSection();
+        openProductModal(relatedProduct);
+      }
     });
   });
 }
@@ -888,7 +1079,17 @@ function renderCart(list) {
     } catch (err) {
       toast("Gagal membuka WhatsApp: " + err.message, "error");
     }
+    addOrder({ total, items: list.map((i) => ({ id: i.id, qty: i.qty })) });
+    toast("Pesanan disimpan di menu Pesanan.", "ok");
+    renderCart(clearCart());
+    renderBadges();
   });
+}
+
+function renderHelp() {
+  const panel = document.getElementById("view-help");
+  if (!panel) return;
+  panel.innerHTML = `<section class="info-page"><span class="eyebrow">Pusat Bantuan</span><h1>Butuh bantuan?</h1><p class="lead">Kami bantu pilih produk, cek stok, dan proses pesanan.</p><div class="help-grid"><article><b>Bagaimana cara pesan?</b><p>Pilih produk, masukkan keranjang, lalu klik Bayar via WhatsApp.</p></article><article><b>Apakah stok real-time?</b><p>Ya. Label stok diperbarui dari katalog dan produk habis tidak bisa dipesan.</p></article><article><b>Butuh rekomendasi?</b><p>Bandingkan maksimal tiga produk sebelum membeli.</p></article></div><a class="btn-primary" href="https://wa.me/6281234567890" target="_blank" rel="noopener">Chat admin</a></section>`;
 }
 
 function renderWishlist(list) {
@@ -940,7 +1141,23 @@ function renderWishlist(list) {
     const card = e.target.closest("article[data-id]");
     if (card) {
       const p = allProducts.find((x) => x.id === card.dataset.id);
-      if (p) openProductModal(p);
+      if (p) { addRecent(loadRecent(), p.id); renderRecentSection(); openProductModal(p); }
     }
   });
+}
+
+
+function renderOrders() {
+  const panel = document.getElementById("view-orders");
+  if (!panel) return;
+  const orders = loadOrders();
+  panel.innerHTML = orders.length ? `<div class="orders-list">${orders.map((o) => `<article class="order-item"><strong>Pesanan #${escapeHtml(String(o.id))}</strong><p>${new Date(o.createdAt).toLocaleDateString("id-ID")}</p>${o.items.map((i) => `<span>${escapeHtml(allProducts.find((p) => p.id === i.id)?.nama || "Produk")} × ${i.qty}</span>`).join(" · ")}<p>Total: ${rupiah(o.total || o.items.reduce((sum, i) => sum + (allProducts.find((p) => p.id === i.id)?.harga || 0) * i.qty, 0))}</p></article>`).join("")}</div>` : `<p class="muted">Anda belum memiliki riwayat pesanan.</p>`;
+}
+
+function renderVouchers() {
+  const panel = document.getElementById("view-vouchers");
+  if (!panel) return;
+  const claims = loadVoucherClaims();
+  panel.innerHTML = `<section class="info-page"><h2>Voucher Saya</h2><p>Gunakan kode voucher untuk klaim promo.</p><form class="voucher-form"><label for="voucher-code">Kode voucher</label><input id="voucher-code" required maxlength="40" autocomplete="off"><button class="btn-primary" type="submit">Klaim voucher</button></form>${claims.map((v) => `<p class="voucher-item">${escapeHtml(v.code)} — ${escapeHtml(v.status || "aktif")}</p>`).join("")}</section>`;
+  panel.querySelector(".voucher-form")?.addEventListener("submit", (e) => { e.preventDefault(); const code = panel.querySelector("#voucher-code").value.trim(); if (code) { claimVoucher(code); toast("Voucher diklaim.", "ok"); renderVouchers(); } });
 }

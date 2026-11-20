@@ -4,6 +4,8 @@ import { isValidImageUrl } from "./utils/dom.js";
 const KEY = "rasanusa:products:v1";
 const CART_KEY = "rasanusa:cart:v1";
 const WISHLIST_KEY = "rasanusa:wishlist:v1";
+const ORDERS_KEY = "rasanusa:orders:v1";
+const VOUCHER_KEY = "rasanusa:vouchers:v1";
 
 export const KATEGORI_VALID = ["Laptop", "Komponen", "Aksesoris", "Periferal"];
 
@@ -224,6 +226,33 @@ export function cartTotal(list, cart) {
   }, 0);
 }
 
+export function loadOrders() {
+  try {
+    const data = JSON.parse(localStorage.getItem(ORDERS_KEY) || "[]");
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export function addOrder(order) {
+  const next = [{ ...order, id: `ORD-${Date.now()}`, createdAt: new Date().toISOString(), status: "Menunggu pembayaran" }, ...loadOrders()];
+  localStorage.setItem(ORDERS_KEY, JSON.stringify(next));
+  return next;
+}
+
+export function loadVoucherClaims() {
+  try {
+    const data = JSON.parse(localStorage.getItem(VOUCHER_KEY) || "[]");
+    return Array.isArray(data) ? data.filter((x) => typeof x === "string") : [];
+  } catch { return []; }
+}
+
+export function claimVoucher(code) {
+  const claims = loadVoucherClaims();
+  if (claims.includes(code)) return false;
+  localStorage.setItem(VOUCHER_KEY, JSON.stringify([...claims, code]));
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 // Wishlist (persisten di localStorage)
 // ---------------------------------------------------------------------------
@@ -236,6 +265,46 @@ export function loadWishlist() {
   } catch {
     return [];
   }
+}
+
+const RECENT_KEY = "rasanusa:recent:v1";
+const COMPARE_KEY = "rasanusa:compare:v1";
+export function loadCompare() {
+  try {
+    const data = JSON.parse(localStorage.getItem(COMPARE_KEY) || "[]");
+    return Array.isArray(data) ? data.filter((x) => typeof x === "string").slice(0, 3) : [];
+  } catch {
+    return [];
+  }
+}
+export function toggleCompare(ids, id) {
+  const next = ids.includes(id)
+    ? ids.filter((x) => x !== id)
+    : ids.length >= 3 ? ids : [...ids, id];
+  localStorage.setItem(COMPARE_KEY, JSON.stringify(next));
+  return next;
+}
+export function clearCompare() {
+  localStorage.removeItem(COMPARE_KEY);
+  return [];
+}
+export function loadRecent() {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    if (!raw) return [];
+    const data = JSON.parse(raw);
+    return Array.isArray(data) ? data.filter((x) => typeof x === "string").slice(0, 6) : [];
+  } catch {
+    return [];
+  }
+}
+export function saveRecent(ids) {
+  localStorage.setItem(RECENT_KEY, JSON.stringify(ids.slice(0, 6)));
+}
+export function addRecent(ids, id) {
+  const next = [id, ...ids.filter((x) => x !== id)].slice(0, 6);
+  saveRecent(next);
+  return next;
 }
 
 export function saveWishlist(ids) {
