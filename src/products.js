@@ -22,11 +22,27 @@ export const products = [
       "Sistem Operasi": "Windows 11 Home",
       Berat: "1.4 kg",
     },
-    reviews: [
-      { nama: "Budi Santoso", rating: 5, komentar: "Ringan, baterai awet, layar jernih. Worth it untuk kerja harian.", tanggal: "2026-10-12" },
-      { nama: "Rina Wulandari", rating: 4, komentar: "Performa bagus, tapi kipas agak berisik saat render video.", tanggal: "2026-09-28" },
-      { nama: "Agus Pratama", rating: 5, komentar: "Harga segini dapat Ryzen 5 dan SSD, sangat memuaskan.", tanggal: "2026-09-15" },
+    variants: [
+      { name: "RAM 8GB / SSD 512GB", price: 5999000, stock: 12 },
+      { name: "RAM 16GB / SSD 512GB", price: 6799000, stock: 8 },
+      { name: "RAM 16GB / SSD 1TB", price: 7499000, stock: 5 },
     ],
+    qa: [
+      { q: "Apakah bisa upgrade RAM?", a: "Ya, bisa upgrade hingga 16GB.", askedBy: "Andi", answeredAt: "2026-10-10" },
+      { q: "Garansi berapa lama?", a: "Garansi resmi 2 tahun.", askedBy: "Budi", answeredAt: "2026-10-05" },
+    ],
+    stockHistory: [
+      { date: "2026-10-01", stock: 20 },
+      { date: "2026-10-08", stock: 15 },
+      { date: "2026-10-15", stock: 12 },
+    ],
+    reviews: [
+      { nama: "Budi Santoso", rating: 5, komentar: "Ringan, baterai awet, layar jernih. Worth it untuk kerja harian.", tanggal: "2026-10-12", helpful: 48, photos: ["/images/review-laptop1.png"] },
+      { nama: "Rina Wulandari", rating: 4, komentar: "Performa bagus, tapi kipas agak berisik saat render video.", tanggal: "2026-09-28", helpful: 23, photos: [] },
+      { nama: "Agus Pratama", rating: 5, komentar: "Harga segini dapat Ryzen 5 dan SSD, sangat memuaskan.", tanggal: "2026-09-15", helpful: 67, photos: ["/images/review-laptop2.png", "/images/review-laptop3.png"] },
+    ],
+    gallery: ["/images/laptop-asus.png", "/images/laptop-asus-side.png", "/images/laptop-asus-keyboard.png"],
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: "RSN-002",
@@ -51,10 +67,18 @@ export const products = [
       "Sistem Operasi": "Windows 11 Home",
       Berat: "1.63 kg",
     },
-    reviews: [
-      { nama: "Dewi Lestari", rating: 5, komentar: "Layar lebar, enak buat kerja Excel dan nonton.", tanggal: "2026-10-01" },
-      { nama: "Fajar Nugroho", rating: 4, komentar: "Cepat, tapi bodinya plastik terasa biasa saja.", tanggal: "2026-09-20" },
+    variants: [
+      { name: "RAM 8GB / SSD 512GB", price: 5499000, stock: 8 },
+      { name: "RAM 16GB / SSD 1TB", price: 6299000, stock: 4 },
     ],
+    qa: [],
+    stockHistory: [],
+    reviews: [
+      { nama: "Dewi Lestari", rating: 5, komentar: "Layar lebar, enak buat kerja Excel dan nonton.", tanggal: "2026-10-01", helpful: 34, photos: [] },
+      { nama: "Fajar Nugroho", rating: 4, komentar: "Cepat, tapi bodinya plastik terasa biasa saja.", tanggal: "2026-09-20", helpful: 12, photos: [] },
+    ],
+    gallery: ["/images/laptop-lenovo.png"],
+    videoUrl: null,
   },
   {
     id: "RSN-003",
@@ -80,9 +104,11 @@ export const products = [
       "Response Time": "5 ms",
     },
     reviews: [
-      { nama: "Hendra Wijaya", rating: 5, komentar: "Warna bagus, bezel tipis, harga masuk akal.", tanggal: "2026-10-08" },
-      { nama: "Siti Aminah", rating: 4, komentar: "Monitor bagus, stand agak goyang kalau meja digoyang.", tanggal: "2026-09-22" },
+      { nama: "Hendra Wijaya", rating: 5, komentar: "Warna bagus, bezel tipis, harga masuk akal.", tanggal: "2026-10-08", helpful: 56, photos: ["/images/review-monitor1.png"] },
+      { nama: "Siti Aminah", rating: 4, komentar: "Monitor bagus, stand agak goyang kalau meja digoyang.", tanggal: "2026-09-22", helpful: 19, photos: [] },
     ],
+    gallery: ["/images/monitor-led.png", "/images/monitor-led-back.png"],
+    videoUrl: null,
   },
   {
     id: "RSN-004",
@@ -108,10 +134,12 @@ export const products = [
       Material: "ABS + plate aluminum",
     },
     reviews: [
-      { nama: "Rizky Ramadhan", rating: 5, komentar: "Switch brown-nya enak, RGB-nya meriah. Harga murah!", tanggal: "2026-10-15" },
-      { nama: "Putri Ayu", rating: 5, komentar: "Nyaman buat ngetik seharian, suara tidak terlalu berisik.", tanggal: "2026-10-03" },
-      { nama: "Andi Saputra", rating: 4, komentar: "Bagus, tapi kabel agak pendek.", tanggal: "2026-09-18" },
+      { nama: "Rizky Ramadhan", rating: 5, komentar: "Switch brown-nya enak, RGB-nya meriah. Harga murah!", tanggal: "2026-10-15", helpful: 89, photos: ["/images/review-keyboard1.png"] },
+      { nama: "Putri Ayu", rating: 5, komentar: "Nyaman buat ngetik seharian, suara tidak terlalu berisik.", tanggal: "2026-10-03", helpful: 45, photos: [] },
+      { nama: "Andi Saputra", rating: 4, komentar: "Bagus, tapi kabel agak pendek.", tanggal: "2026-09-18", helpful: 21, photos: [] },
     ],
+    gallery: ["/images/keyboard-mechanical.png", "/images/keyboard-mechanical-rgb.png"],
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: "RSN-005",
@@ -137,9 +165,11 @@ export const products = [
       Kompatibilitas: "Windows, macOS",
     },
     reviews: [
-      { nama: "Galih Permana", rating: 4, komentar: "Ringan dan responsif, baterai cukup tahan lama.", tanggal: "2026-09-30" },
-      { nama: "Nadia Safitri", rating: 5, komentar: "Murah, nyaman, cocok buat kerja ringan.", tanggal: "2026-09-10" },
+      { nama: "Galih Permana", rating: 4, komentar: "Ringan dan responsif, baterai cukup tahan lama.", tanggal: "2026-09-30", helpful: 32, photos: [] },
+      { nama: "Nadia Safitri", rating: 5, komentar: "Murah, nyaman, cocok buat kerja ringan.", tanggal: "2026-09-10", helpful: 54, photos: ["/images/review-mouse1.png"] },
     ],
+    gallery: ["/images/mouse-wireless.png"],
+    videoUrl: null,
   },
   {
     id: "RSN-006",
@@ -165,9 +195,11 @@ export const products = [
       Garansi: "5 tahun",
     },
     reviews: [
-      { nama: "Yoga Pratama", rating: 5, komentar: "Boot Windows jadi 8 detik. Puas banget!", tanggal: "2026-10-11" },
-      { nama: "Maya Sari", rating: 5, komentar: "Original, cepat, dan garansi resmi. Recommended.", tanggal: "2026-09-25" },
-      { nama: "Eko Prasetyo", rating: 4, komentar: "Performa sesuai spesifikasi, pengemasan aman.", tanggal: "2026-09-05" },
+      { nama: "Yoga Pratama", rating: 5, komentar: "Boot Windows jadi 8 detik. Puas banget!", tanggal: "2026-10-11", helpful: 78, photos: ["/images/review-ssd1.png"] },
+      { nama: "Maya Sari", rating: 5, komentar: "Original, cepat, dan garansi resmi. Recommended.", tanggal: "2026-09-25", helpful: 91, photos: [] },
+      { nama: "Eko Prasetyo", rating: 4, komentar: "Performa sesuai spesifikasi, pengemasan aman.", tanggal: "2026-09-05", helpful: 43, photos: [] },
     ],
+    gallery: ["/images/ssd-nvme.png", "/images/ssd-nvme-box.png"],
+    videoUrl: null,
   },
 ];

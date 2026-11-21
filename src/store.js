@@ -1,11 +1,13 @@
 import { products as seedProducts } from "./products.js";
 import { isValidImageUrl } from "./utils/dom.js";
+import { installmentPlans, shippingCosts } from "./data-extended.js";
 
 const KEY = "rasanusa:products:v1";
 const CART_KEY = "rasanusa:cart:v1";
 const WISHLIST_KEY = "rasanusa:wishlist:v1";
 const ORDERS_KEY = "rasanusa:orders:v1";
 const VOUCHER_KEY = "rasanusa:vouchers:v1";
+const ALERTS_KEY = "rasanusa:stock-alerts:v1";
 
 export const KATEGORI_VALID = ["Laptop", "Komponen", "Aksesoris", "Periferal"];
 
@@ -222,7 +224,12 @@ export function cartCount(cart) {
 export function cartTotal(list, cart) {
   return cart.reduce((s, i) => {
     const p = list.find((x) => x.id === i.id);
-    return p ? s + p.harga * i.qty : s;
+    if (!p) return s;
+    let price = p.harga;
+    if (i.variantIdx !== undefined && p.variants && p.variants[i.variantIdx]) {
+      price = p.variants[i.variantIdx].price;
+    }
+    return s + price * i.qty;
   }, 0);
 }
 
@@ -323,4 +330,114 @@ export function isInWishlist(ids, id) {
 
 export function getBrands(list) {
   return [...new Set(list.map((p) => p.brand).filter(Boolean))].sort();
+}
+
+export function loadStockAlerts() {
+  try {
+    const data = JSON.parse(localStorage.getItem(ALERTS_KEY) || "[]");
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
+
+export function addStockAlert(productId, email) {
+  const alerts = loadStockAlerts();
+  if (alerts.some((a) => a.productId === productId && a.email === email)) return false;
+  alerts.push({ productId, email, createdAt: new Date().toISOString() });
+  localStorage.setItem(ALERTS_KEY, JSON.stringify(alerts));
+  return true;
+}
+
+export function addReview(productId, review) {
+  const list = loadProducts();
+  const p = list.find((x) => x.id === productId);
+  if (!p) return false;
+  if (!Array.isArray(p.reviews)) p.reviews = [];
+  p.reviews.push({ nama: "Pembeli", tanggal: new Date().toISOString().slice(0, 10), helpful: 0, ...review });
+  p.reviewCount = p.reviews.length;
+  p.rating = Number((p.reviews.reduce((s, r) => s + Number(r.rating || 0), 0) / p.reviews.length).toFixed(1));
+  saveProducts(list);
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Loyalitas — tier + poin
+// ---------------------------------------------------------------------------
+const LOYALTY_KEY = "rasanusa:loyalty:v1";
+
+export function loadLoyalty() {
+  try {
+    return JSON.parse(localStorage.getItem(LOYALTY_KEY)) || { points: 0 };
+  } catch {
+    return { points: 0 };
+  }
+}
+
+export function addPoints(n) {
+  const l = loadLoyalty();
+  l.points = Math.max(0, (l.points || 0) + n);
+  localStorage.setItem(LOYALTY_KEY, JSON.stringify(l));
+  return l.points;
+}
+
+export function loyaltyTier(points) {
+  if (points >= 2000) return { name: "Platinum", next: null, color: "#8b5cf6" };
+  if (points >= 1000) return { name: "Gold", next: 2000, color: "#f59e0b" };
+  if (points >= 400) return { name: "Silver", next: 1000, color: "#94a3b8" };
+  return { name: "Bronze", next: 400, color: "#b45309" };
+}
+
+
+// Installment calculator
+export function calcInstallment(price, months) {
+  const plan = installmentPlans.find((p) => p.months === months);
+  if (!plan || price < plan.minAmount) return null;
+  const monthlyPayment = price / months * (1 + plan.monthlyRate * months);
+  return Math.round(monthlyPayment);
+}
+
+// Shipping calculator
+export function calcShipping(city, method) {
+  const costs = shippingCosts[city] || shippingCosts.Default;
+  return costs[method] || 0;
+}
+
+// Recommendation engine — score products by similarity & history
+export function scoreRecommendations(currentProduct, allProds, recentIds = []) {
+  return allProds
+    .filter((p) => p.id !== currentProduct.id)
+    .map((p) => {
+      let score = 0;
+      if (p.kategori === currentProduct.kategori) score += 40;
+      if (p.brand === currentProduct.brand) score += 30;
+      if (Math.abs(p.harga - currentProduct.harga) < currentProduct.harga * 0.3) score += 20;
+      if (recentIds.includes(p.id)) score += 15;
+      if (p.rating >= 4.5) score += 10;
+      return { ...p, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
+}
+
+// Select variant by index
+export function selectVariant(product, variantIndex) {
+  if (!product.variants || variantIndex < 0 || variantIndex >= product.variants.length) {
+    return { name: "", price: product.harga, stock: product.stok };
+  }
+  return product.variants[variantIndex];
+}
+
+// Calculate checkout totals: subtotal, shipping, discount, tax, total
+export function calculateCheckout(cart, products, options = {}) {
+  const { shipping = 0, discount = 0, taxRate = 0 } = options;
+  
+  const subtotal = cart.reduce((sum, item) => {
+    const prod = products.find((p) => p.id === item.id);
+    return sum + (prod ? prod.harga * item.qty : 0);
+  }, 0);
+  
+  const taxableAmount = subtotal - discount + shipping;
+  const tax = Math.round(taxableAmount * taxRate);
+  const total = subtotal - discount + shipping + tax;
+  
+  return { subtotal, shipping, discount, tax, total };
 }

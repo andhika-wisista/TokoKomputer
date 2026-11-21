@@ -21,7 +21,34 @@ import {
   addOrder,
   loadVoucherClaims,
   claimVoucher,
-} from "../src/store.js";
+  loadStockAlerts,
+  addStockAlert,
+  selectVariant,
+  calculateCheckout,
+} from "../src/store.js"; 
+
+
+describe("selectVariant", () => {
+  const product = {
+    harga: 1000000,
+    stok: 10,
+    variants: [
+      { name: "8GB", price: 1000000, stock: 10 },
+      { name: "16GB", price: 1250000, stock: 4 },
+    ],
+  };
+
+  it("menggunakan harga dan stok variasi terpilih", () => {
+    expect(selectVariant(product, 1)).toEqual({ name: "16GB", price: 1250000, stock: 4 });
+  });
+
+  it("kembali ke produk induk bila indeks variasi tidak valid", () => {
+    expect(selectVariant(product, 99)).toEqual({ name: "", price: 1000000, stock: 10 });
+  });
+});
+
+
+
 
 const storage = new Map();
 globalThis.localStorage = {
@@ -96,6 +123,25 @@ describe("shopMenuStore", () => {
     expect(claimVoucher("HEMAT10")).toBe(true);
     expect(loadVoucherClaims()).toContain("HEMAT10");
     expect(claimVoucher("HEMAT10")).toBe(false);
+  });
+});
+
+describe("calculateCheckout", () => {
+  it("hitung subtotal, ongkir, diskon, pajak, total", () => {
+    const cart = [
+      { id: "RSN-001", qty: 1 },
+      { id: "RSN-004", qty: 2 },
+    ];
+    const productList = [
+      { id: "RSN-001", harga: 5999000, stok: 10 },
+      { id: "RSN-004", harga: 450000, stok: 20 },
+    ];
+    const result = calculateCheckout(cart, productList, { shipping: 25000, discount: 100000, taxRate: 0.1 });
+    expect(result.subtotal).toBe(6899000);
+    expect(result.shipping).toBe(25000);
+    expect(result.discount).toBe(100000);
+    expect(result.tax).toBe(Math.round((6899000 - 100000 + 25000) * 0.1));
+    expect(result.total).toBe(result.subtotal - result.discount + result.shipping + result.tax);
   });
 });
 
@@ -232,5 +278,18 @@ describe("localStorage parser", () => {
     importProducts(JSON.stringify([base()]));
     expect(loadProducts()).toHaveLength(1);
     expect(loadProducts()[0].nama).toBe("Produk Tes");
+  });
+});
+
+describe("stock alert", () => {
+  it("menyimpan alert dan menolak duplikat", () => {
+    expect(loadStockAlerts()).toEqual([]);
+    expect(addStockAlert("P1", "a@b.com")).toBe(true);
+    expect(addStockAlert("P1", "a@b.com")).toBe(false);
+    expect(addStockAlert("P1", "c@d.com")).toBe(true);
+    const alerts = loadStockAlerts();
+    expect(alerts).toHaveLength(2);
+    expect(alerts[0].productId).toBe("P1");
+    expect(typeof alerts[0].createdAt).toBe("string");
   });
 });
